@@ -1,0 +1,33 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF Rearrange</title>
+    <link href="index.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="container">
+        <h1>PDF Rearrange</h1>
+
+        <div class="file-input-container">
+            <label class="btn btn-primary">
+                select PDF
+                <input type="file" id="pdfInput" accept=".pdf" multiple>
+            </label>
+            <button class="btn btn-select" id="exportPdf">export PDF</button>
+        </div>
+
+        <div class="pdf-container" id="pdf-list"></div>
+
+        <div class="order-info">
+            <h3>目前排序：</h3>
+            <div id="order-display"></div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.8.0/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script src="index.js"></script>
+</body>
+</html>
