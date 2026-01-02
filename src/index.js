@@ -46,60 +46,27 @@ document.addEventListener('DOMContentLoaded', () => {
             const file = files[i];
             if (file.type !== 'application/pdf')
                 continue;
+            for await (const { uid, pageNum, canvas, totalPage } of PdfManager.yieldPageItems(file)) {
+                let pdfItemId = `${uid}-${pageNum}`;
+                const pdfItem = document.createElement('div');
+                pdfItem.id = pdfItemId;
+                pdfItem.className = "pdf-item";
+                pdfItem.innerHTML = `
+<button class="remove-btn" title="移除" data-fid="${pdfItemId}">×</button>
+<div class="pdf-preview"></div>
+<div class="pdf-title">${file.name}</div>
+<div class="pdf-info">頁數: ${pageNum} of ${totalPage}</div>`;
 
-            const pdfData = await file.arrayBuffer();
-            const uid = `pdf-${Date.now()}-${i}-${Math.floor(Math.random() * 1000)}`;
-            let fileInfo = { uid: uid, domId: 'fileInput_' + uid, fileName: file.name };
-            await createPdfItemDom(pdfData, fileInfo);
-            createFileInputDom(file, fileInfo.domId);
+                pdfContainer.appendChild(pdfItem);
+                pdfItem.querySelector('.pdf-preview').appendChild(canvas);
+                pdfItem.dataset.uid = uid;
+                pdfItem.dataset.pageNum = pageNum;
+            }
         }
         updateOrderDisplay();
         pdfInput.value = '';
     }
 
-
-    function createFileInputDom(file, domId) {
-        if (document.getElementById(domId))
-            return;
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.pdf';
-        fileInput.id = domId;
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(file);
-        fileInput.files = dataTransfer.files;
-        document.body.appendChild(fileInput);
-    }
-
-    async function createPdfItemDom(pdfData, fileInfo) {
-        const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-            let pdfItemId = `${fileInfo.uid}-${pageNum}`;
-            const pdfItem = document.createElement('div');
-            pdfItem.id = pdfItemId;
-            pdfItem.className = "pdf-item";
-            pdfItem.innerHTML = `
-<button class="remove-btn" title="移除" data-fid="${pdfItemId}">×</button>
-<div class="pdf-preview"></div>
-<div class="pdf-title">${fileInfo.fileName}</div>
-<div class="pdf-info">頁數: ${pageNum} of ${pdf.numPages}</div>`;
-
-            pdfItem.dataset.domid = fileInfo.domId;
-            pdfContainer.appendChild(pdfItem);
-
-            const page = await pdf.getPage(pageNum);
-            const scale = 0.5;
-            const viewport = page.getViewport({ scale });
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-            const renderContext = { canvasContext: context, viewport: viewport };
-            await page.render(renderContext).promise;
-
-            pdfItem.querySelector('.pdf-preview').appendChild(canvas);
-        }
-    }
 
     // 更新排序顯示
     function updateOrderDisplay() {
@@ -121,36 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // pdf-lib.js
-        const { PDFDocument } = window.PDFLib;
-        const newPdfDoc = await PDFDocument.create();
-
-        const map = new Map()
-        const groups = Object.groupBy(pdfItems, x => x.dataset.domid);
-        for (const [domId, v] of Object.entries(groups)) {
-    
-            const fileInput = document.getElementById(domId);
-            if (!fileInput || !fileInput.files.length)
-                continue;
-            const file = fileInput.files[0];
-            const arrayBuffer = await file.arrayBuffer();
-            const srcPdf = await PDFDocument.load(arrayBuffer);
-            debugger
-            map.set(domId, srcPdf);
-        }
-
-
-        for (const item of pdfItems) {
-            // 載入原 PDF 並複製對應頁面
-            const srcPdf = map.get(item.dataset.domid);
-            const pageNum = parseInt(item.id.split('-').pop(), 10);
-            if (pageNum > 0 && pageNum <= srcPdf.getPageCount()) {
-                const [copiedPage] = await newPdfDoc.copyPages(srcPdf, [pageNum - 1]);
-                newPdfDoc.addPage(copiedPage);
-            }
-        }
-
-        const pdfBytes = await newPdfDoc.save();
+        const data = pdfItems.map(x => x.dataset);
+        const pdfBytes = await PdfManager.exportPdf(data);
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
