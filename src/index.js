@@ -44,9 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
-            if (file.type !== 'application/pdf')
-                continue;
-            for await (const { uid, pageNum, canvas, totalPage } of PdfManager.yieldPageItems(file)) {
+            for await (const { uid, pageNum, type, canvas, totalPage } of PdfManager.yieldPageItems(file)) {
                 let pdfItemId = `${uid}-${pageNum}`;
                 const pdfItem = document.createElement('div');
                 pdfItem.id = pdfItemId;
@@ -61,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pdfItem.querySelector('.pdf-preview').appendChild(canvas);
                 pdfItem.dataset.uid = uid;
                 pdfItem.dataset.pageNum = pageNum;
+                pdfItem.dataset.type = type;
             }
         }
         updateOrderDisplay();
