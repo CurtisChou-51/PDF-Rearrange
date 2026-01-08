@@ -84,7 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function removePdfFile(id) {
         document.getElementById(id)?.remove();
-        document.getElementById('fileInput_' + id)?.remove();
         updateOrderDisplay();
     }
 
