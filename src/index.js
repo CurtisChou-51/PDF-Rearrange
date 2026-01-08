@@ -44,28 +44,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
-            for await (const { uid, pageNum, type, canvas, totalPage } of PdfManager.yieldPageItems(file)) {
-                let pdfItemId = `${uid}-${pageNum}`;
-                const pdfItem = document.createElement('div');
-                pdfItem.id = pdfItemId;
-                pdfItem.className = "pdf-item";
-                pdfItem.innerHTML = `
-<button class="remove-btn" title="移除" data-fid="${pdfItemId}">×</button>
-<div class="pdf-preview"></div>
-<div class="pdf-title">${file.name}</div>
-<div class="pdf-info">頁數: ${pageNum} of ${totalPage}</div>`;
-
+            for await (const data of PdfManager.yieldPageItems(file)) {
+                const pdfItem = createPdfItemDom({ fileName: file.name, ...data });
                 pdfContainer.appendChild(pdfItem);
-                pdfItem.querySelector('.pdf-preview').appendChild(canvas);
-                pdfItem.dataset.uid = uid;
-                pdfItem.dataset.pageNum = pageNum;
-                pdfItem.dataset.type = type;
             }
         }
         updateOrderDisplay();
         pdfInput.value = '';
     }
 
+    /**
+     * 建立 PdfItem DOM 元素
+     * @returns {HTMLDivElement} PdfItem DOM 元素
+     */
+    function createPdfItemDom({ uid, pageNum, type, canvas, totalPage, fileName }) {
+        let pdfItemId = `${uid}-${pageNum}`;
+        const pdfItem = document.createElement('div');
+        pdfItem.id = pdfItemId;
+        pdfItem.className = "pdf-item";
+        pdfItem.innerHTML = `
+<button class="remove-btn" title="移除" data-fid="${pdfItemId}">×</button>
+<div class="pdf-preview"></div>
+<div class="pdf-title">${fileName}</div>
+<div class="pdf-info">頁數: ${pageNum} of ${totalPage}</div>`;
+
+        pdfItem.querySelector('.pdf-preview').appendChild(canvas);
+        pdfItem.dataset.uid = uid;
+        pdfItem.dataset.pageNum = pageNum;
+        pdfItem.dataset.type = type;
+        return pdfItem;
+    }
 
     // 更新排序顯示
     function updateOrderDisplay() {
