@@ -7,27 +7,49 @@
     <link href="index.css" rel="stylesheet" />
 </head>
 <body>
-    <div class="container">
-        <h1>PDF Rearrange</h1>
+    <div id="app">
+        <div class="container">
+            <h1>PDF Rearrange</h1>
 
-        <div class="file-input-container">
-            <label class="btn btn-primary">
-                select PDF
-                <input type="file" id="pdfInput" accept=".pdf" multiple>
-            </label>
-            <button class="btn btn-select" id="exportPdf">export PDF</button>
-        </div>
+            <div class="file-input-container">
+                <label class="btn btn-primary">
+                    select PDF
+                    <input type="file" accept=".pdf" multiple @change="onFileChange">
+                </label>
+                <button class="btn btn-select" @click="exportPdfClick">export PDF</button>
+            </div>
 
-        <div class="pdf-container" id="pdf-list"></div>
+            <draggable v-model="pdfItems" class="pdf-container"
+                       :class="{ dragover: isDragover }"
+                       @dragover.prevent="onDragOver" @dragleave.prevent="onDragLeave" @drop.prevent="onDrop">
+                <template #item="{ element, index }">
+                    <div class="pdf-item">
+                        <button class="remove-btn" title="移除" @click="removePdfItemClick(index)">×</button>
+                        <div class="pdf-preview" :ref="el => setCanvasRef(el, element)"></div>
+                        <div class="pdf-title">{{ element.fileName }}</div>
+                        <div class="pdf-info">頁數: {{ element.pageNum }} of {{ element.totalPage }}</div>
+                    </div>
+                </template>
+            </draggable>
 
-        <div class="order-info">
-            <h3>目前排序：</h3>
-            <div id="order-display"></div>
+            <div class="order-info">
+                <h3>目前排序：</h3>
+                <div>
+                    <ol>
+                        <li v-for="(item, idx) in pdfItems" :key="idx">{{ item.fileName }}</li>
+                    </ol>
+                </div>
+            </div>
         </div>
     </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.8.0/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://unpkg.com/vuedraggable@next/dist/vuedraggable.umd.js"></script>
+
     <script src="PdfManager.js"></script>
     <script src="index.js"></script>
 </body>
