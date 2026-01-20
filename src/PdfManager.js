@@ -56,10 +56,22 @@
         // pdf-lib.js
         const newPdfDoc = await PDFLib.PDFDocument.create();
         for (const item of data) {
-            const { uid, pageNum, type } = item;
+            const { uid, pageNum, type, canvas } = item;
             const entry = _pdfCacheMap.get(uid);
-            if (type.startsWith('image/')) {
-                const pngImage = type == 'image/png' ? await newPdfDoc.embedPng(entry.arrayBuffer) : await newPdfDoc.embedJpg(entry.arrayBuffer);
+
+            const isImage = type.startsWith('image/');
+            let imageBuffer = entry.arrayBuffer;
+            let imageType = type;
+
+            // 非 png/jpg 圖片 => 轉成 png
+            if (isImage && imageType !== 'image/png' && imageType !== 'image/jpeg') {
+                const dataUrl = canvas.toDataURL('image/png');
+                imageBuffer = Uint8Array.from(atob(dataUrl.split(',')[1]), c => c.charCodeAt(0));
+                imageType = 'image/png';
+            }
+
+            if (isImage) {
+                const pngImage = imageType == 'image/png' ? await newPdfDoc.embedPng(imageBuffer) : await newPdfDoc.embedJpg(imageBuffer);
 
                 // 設定預設頁面大小 (例如 A4: 595 x 842 pt)
                 let pageWidth = 595;
