@@ -68,8 +68,8 @@
                     pageWidth = 842;
                     pageHeight = 595;
                 }
-                const scale = Math.min(pageWidth / pngImage.width, pageHeight / pngImage.height);
-
+                let scale = Math.min(pageWidth / pngImage.width, pageHeight / pngImage.height);
+                scale = scale > 3.3 ? 3.3 : scale;  // 最大放大 3.3 倍
                 const imgWidth = pngImage.width * scale;
                 const imgHeight = pngImage.height * scale;
 
