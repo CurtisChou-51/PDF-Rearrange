@@ -6,11 +6,11 @@
 
         const arrayBuffer = await file.arrayBuffer();
         const uid = `pdf-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-        _pdfCacheMap.set(uid, { arrayBuffer: structuredClone(arrayBuffer) });
 
-        if (file.type.startsWith('image/')) {
+        let fileType = file.type;
+        if (fileType.startsWith('image/')) {
             const img = new Image();
-            const blob = new Blob([arrayBuffer], { type: file.type });
+            const blob = new Blob([arrayBuffer], { type: fileType });
             const url = URL.createObjectURL(blob);
 
             img.src = url;
@@ -25,19 +25,28 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
 
-            yield { uid, totalPage: 1, pageNum: 1, canvas, type: file.type };
-
+            // 非 png/jpg 圖片 => 轉成 png
+            if (fileType !== 'image/png' && fileType !== 'image/jpeg') {
+                const dataUrl = canvas.toDataURL('image/png');
+                _pdfCacheMap.set(uid, { arrayBuffer: Uint8Array.from(atob(dataUrl.split(',')[1]), c => c.charCodeAt(0)) });
+                yield { uid, totalPage: 1, pageNum: 1, canvas, type: 'image/png' };
+            }
+            else {
+                _pdfCacheMap.set(uid, { arrayBuffer: structuredClone(arrayBuffer) });
+                yield { uid, totalPage: 1, pageNum: 1, canvas, type: fileType };
+            }
             URL.revokeObjectURL(url);
             return;
         }
-        if (file.type !== 'application/pdf')
+        if (fileType !== 'application/pdf')
             return;
 
+        _pdfCacheMap.set(uid, { arrayBuffer: structuredClone(arrayBuffer) });
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
             const canvas = await renderCanvas(page);
-            yield { uid, totalPage: pdf.numPages, pageNum, canvas, type: file.type };
+            yield { uid, totalPage: pdf.numPages, pageNum, canvas, type: fileType };
         }
     }
 
@@ -56,22 +65,13 @@
         // pdf-lib.js
         const newPdfDoc = await PDFLib.PDFDocument.create();
         for (const item of data) {
-            const { uid, pageNum, type, canvas } = item;
+            const { uid, pageNum, type } = item;
             const entry = _pdfCacheMap.get(uid);
 
             const isImage = type.startsWith('image/');
             let imageBuffer = entry.arrayBuffer;
-            let imageType = type;
-
-            // 非 png/jpg 圖片 => 轉成 png
-            if (isImage && imageType !== 'image/png' && imageType !== 'image/jpeg') {
-                const dataUrl = canvas.toDataURL('image/png');
-                imageBuffer = Uint8Array.from(atob(dataUrl.split(',')[1]), c => c.charCodeAt(0));
-                imageType = 'image/png';
-            }
-
             if (isImage) {
-                const pngImage = imageType == 'image/png' ? await newPdfDoc.embedPng(imageBuffer) : await newPdfDoc.embedJpg(imageBuffer);
+                const pngImage = type == 'image/png' ? await newPdfDoc.embedPng(imageBuffer) : await newPdfDoc.embedJpg(imageBuffer);
 
                 // 設定預設頁面大小 (例如 A4: 595 x 842 pt)
                 let pageWidth = 595;
