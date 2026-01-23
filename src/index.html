@@ -36,7 +36,7 @@
                 <h3>目前排序：</h3>
                 <div>
                     <ol>
-                        <li v-for="(item, idx) in pdfItems" :key="idx">{{ item.fileName }}</li>
+                        <li v-for="(item, idx) in pdfItems" :key="idx">{{ item.fileName }} (原第 {{ item.pageNum }} 頁)</li>
                     </ol>
                 </div>
             </div>
