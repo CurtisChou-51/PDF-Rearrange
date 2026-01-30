@@ -64,6 +64,22 @@
     async function exportPdf(data) {
         // pdf-lib.js
         const newPdfDoc = await PDFLib.PDFDocument.create();
+
+        // 批次複製各檔案所選頁面
+        const copiedPageMap = new Map();
+        for (let [uid, pdfDatas] of Object.entries(Object.groupBy(data.filter(x => !x.type.startsWith('image/')), x => x.uid))) {
+            const cacheEntry = _pdfCacheMap.get(uid);
+            cacheEntry.srcPdf ??= await PDFLib.PDFDocument.load(cacheEntry.arrayBuffer);
+
+            const copiedPageNums = pdfDatas.map(x => x.pageNum).sort((a, b) => a - b);
+            const copiedPages = await newPdfDoc.copyPages(cacheEntry.srcPdf, copiedPageNums.map(n => n - 1));
+
+            for (let i = 0; i < copiedPageNums.length; i++) {
+                const newKey = `${uid}@${copiedPageNums[i]}`;
+                copiedPageMap.set(newKey, copiedPages[i]);
+            }
+        }
+
         for (const item of data) {
             const { uid, pageNum, type } = item;
             const entry = _pdfCacheMap.get(uid);
@@ -94,10 +110,8 @@
                 });
             }
             else {
-                entry.srcPdf ??= await PDFLib.PDFDocument.load(entry.arrayBuffer);
-
-                const num = parseInt(pageNum, 10);
-                const [copiedPage] = await newPdfDoc.copyPages(entry.srcPdf, [num - 1]);
+                const newKey = `${uid}@${pageNum}`;
+                const copiedPage = copiedPageMap.get(newKey);
                 newPdfDoc.addPage(copiedPage);
             }
         }
